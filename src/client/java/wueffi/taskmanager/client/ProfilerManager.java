@@ -736,15 +736,19 @@ public class ProfilerManager {
     }
 
     public void onClientTickEnd(Minecraft client) {
+        taskmanagerClient.LOGGER.info("TaskManager: onClientTickEnd START");
         long selfCostStartedAt = System.nanoTime();
         boolean collectionActive = false;
         try {
             collectionActive = getLiveCollectionMode() != LiveCollectionMode.INACTIVE;
+            taskmanagerClient.LOGGER.info("TaskManager: collectionActive={}", collectionActive);
             ThreadLoadProfiler.getInstance().setCollectionActive(collectionActive, shouldCollectDetailedMetrics());
             if (!collectionActive) {
+                taskmanagerClient.LOGGER.info("TaskManager: onClientTickEnd inactive, return");
                 return;
             }
 
+            taskmanagerClient.LOGGER.info("TaskManager: sampleWorldData");
             WorldScanResult worldScan = sampleWorldData(client);
             latestEntityCounts = worldScan.entityCounts();
             latestChunkCounts = sampleChunkCounts(client);
@@ -752,20 +756,25 @@ public class ProfilerManager {
             latestEntityHotspots = worldScan.entityHotspots();
             latestBlockEntityHotspots = worldScan.blockEntityHotspots();
             String collectorGovernorMode = getCollectorGovernorMode();
+            taskmanagerClient.LOGGER.info("TaskManager: governor={}", collectorGovernorMode);
 
             boolean selfProtecting = "self-protect".equals(collectorGovernorMode);
             if ((!selfProtecting && shouldCollectFrameMetrics()) || sessionLogging || screenOpen || (client.level != null && client.level.getGameTime() % 200 == 0)) {
                 MemoryProfiler.getInstance().sampleJvm();
             }
             MemoryProfiler.Snapshot memorySnapshot = MemoryProfiler.getInstance().getDetailedSnapshot();
-            SystemMetricsProfiler.getInstance().sample(memorySnapshot, latestEntityCounts, latestChunkCounts);
-            NetworkPacketProfiler.getInstance().drainWindow();
-            updateConflictTracking(SystemMetricsProfiler.getInstance().getSnapshot());
-            latestLockSummaries = buildLockSummaries(SystemMetricsProfiler.getInstance().getSnapshot());
+            taskmanagerClient.LOGGER.info("TaskManager: MemoryProfiler detailed done");
+            try {
+                // SystemMetricsProfiler.sample() blocks on this Vulkan/Windows setup; skip it.
+                NetworkPacketProfiler.getInstance().drainWindow();
+            } catch (Throwable t) {
+                taskmanagerClient.LOGGER.debug("TaskManager: network/system sample skipped", t);
+            }
 
             if (!isCaptureActive()) {
                 enforceSessionWindow(client);
                 publishSnapshot(false);
+                taskmanagerClient.LOGGER.info("TaskManager: onClientTickEnd FAST-RETURN");
                 return;
             }
 
