@@ -965,7 +965,13 @@ public class TaskManagerScreen extends Screen {
     }
 
     private void renderWorldTab(GuiGraphicsExtractor ctx, int x, int y, int w, int h) {
-        WorldTabRenderer.render(this, ctx, x, y, w, h);
+        try {
+            WorldTabRenderer.render(this, ctx, x, y, w, h);
+        } catch (Throwable t) {
+            // Some Fabric/Vulkan runtimes report a corrupt LOC header for this
+            // lazily-loaded class instead of giving the player a usable world tab.
+            ctx.text(font, "World diagnostics unavailable (WorldTabRenderer load failed).", x, y + 4, TEXT_DIM, false);
+        }
     }
 
     void renderLagMap(GuiGraphicsExtractor ctx, int x, int y, int width, int height) {
