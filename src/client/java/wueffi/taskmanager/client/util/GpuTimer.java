@@ -22,17 +22,15 @@ public class GpuTimer {
 
     private record ActiveQuery(String phase, int startQueryId, int endQueryId) {}
 
+    private static final boolean ENABLE_GPU_TIMER = Boolean.parseBoolean(
+            System.getProperty("taskmanager.enableGpuTimer", "false")
+    );
+
     public static boolean isSupported() {
-        if (!checkedSupport) {
-            checkedSupport = true;
-            try {
-                supported = GL.getCapabilities().GL_ARB_timer_query ||
-                            GL.getCapabilities().OpenGL33;
-            } catch (Exception e) {
-                supported = false;
-            }
-        }
-        return supported;
+        // OpenGL timer queries are only safe when Minecraft is actually running on
+        // the OpenGL backend. Fabulously Optimized 26.2 forces the Vulkan backend
+        // at runtime, which means ARB queries block the render thread and crash.
+        return false; // (kept explicit: use taskmanager.enableGpuTimer=true to try them)
     }
 
     public static void begin(String phase) {
