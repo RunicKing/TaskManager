@@ -415,13 +415,19 @@ public class ProfilerManager {
     public void initialize() {
         mode = ConfigManager.getCaptureMode();
         sessionBaseline = sessionExporter.loadBaseline();
-        ThreadSnapshotCollector.getInstance().start();
-        CpuSamplingProfiler.getInstance().start();
+        // CPU/thread samplers are started lazily in onScreenOpened and stopped in
+        // onScreenClosed so they consume zero CPU while Task Manager is hidden.
         publishSnapshot(true);
     }
 
     public void onScreenOpened() {
         screenOpen = true;
+        try {
+            ThreadSnapshotCollector.getInstance().start();
+            CpuSamplingProfiler.getInstance().start();
+        } catch (Throwable t) {
+            taskmanagerClient.LOGGER.debug("TaskManager: sampler start skipped", t);
+        }
         if (mode == CaptureMode.OPEN_ONLY || mode == CaptureMode.MANUAL_DEEP) {
             clearLiveWindows();
             RenderPhaseProfiler.getInstance().reset();
@@ -434,6 +440,12 @@ public class ProfilerManager {
 
     public void onScreenClosed() {
         screenOpen = false;
+        try {
+            ThreadSnapshotCollector.getInstance().stop();
+            CpuSamplingProfiler.getInstance().stop();
+        } catch (Throwable t) {
+            taskmanagerClient.LOGGER.debug("TaskManager: sampler stop skipped", t);
+        }
         if (mode == CaptureMode.OPEN_ONLY) {
             clearLiveWindows();
             publishSnapshot(true);
