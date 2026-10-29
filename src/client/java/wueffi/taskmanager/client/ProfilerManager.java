@@ -415,8 +415,8 @@ public class ProfilerManager {
     public void initialize() {
         mode = ConfigManager.getCaptureMode();
         sessionBaseline = sessionExporter.loadBaseline();
-        // Background CPU/thread samplers are left off for Vulkan-era Fabric 26.2 clients;
-        // they caused render-thread stalls in onClientTickEnd on this hardware.
+        ThreadSnapshotCollector.getInstance().start();
+        CpuSamplingProfiler.getInstance().start();
         publishSnapshot(true);
     }
 

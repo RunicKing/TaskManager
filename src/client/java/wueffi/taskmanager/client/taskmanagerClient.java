@@ -32,6 +32,10 @@ public class taskmanagerClient implements ClientModInitializer {
                 startupClosed = true;
                 StartupTimingProfiler.getInstance().close();
             }
+            try {
+                ProfilerManager.getInstance().onClientTickEnd(client);
+            } catch (Throwable ignored) {
+            }
         });
     }
 }
