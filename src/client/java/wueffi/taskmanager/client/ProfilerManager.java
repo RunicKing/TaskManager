@@ -790,7 +790,7 @@ public class ProfilerManager {
             boolean shouldSamplePerModMemory = shouldCollectDetailedMetrics() || sessionLogging;
             long memoryCadenceMillis = CollectorMath.computeAdaptiveMemoryCadenceMillis(collectorGovernorMode, screenOpen, sessionLogging);
             boolean allowExpensiveMemoryCollection = (!"light".equals(collectorGovernorMode) && !"self-protect".equals(collectorGovernorMode)) || screenOpen || sessionLogging;
-            if (shouldSamplePerModMemory && allowExpensiveMemoryCollection && MemoryProfiler.getInstance().getLastModSampleAgeMillis() > memoryCadenceMillis) {
+            if (shouldSamplePerModMemory && allowExpensiveMemoryCollection && MemoryProfiler.getInstance().getLastModSampleAgeMillis() > Math.max(memoryCadenceMillis, 10000)) {
                 MemoryProfiler.getInstance().requestPerModSample();
             }
 
